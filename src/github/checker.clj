@@ -7,14 +7,17 @@
 (defn closed? [issue]
   (= "closed" (:state issue)))
 
-(defn get-issues [issue-ids]
+(defn gh-exists? [issue]
+  (not= 404 (:status issue)))
+
+(defn get-issues [account repo issue-ids]
   (for [id issue-ids]
-    (issues/specific-issue *gh-account* *repo* id)))
+    (issues/specific-issue account repo id)))
 
 (defn open-gh-issues
   [ & ids]
   (with-meta (fn [_]
-               (for [issue (->> ids get-issues (filter (complement closed?)))]
+               (for [issue (->> ids get-issues (filter (and (complement closed?) (gh-exists?))))]
                  (format "<a href='%1s'>%2s</a>"
                          (:url issue)
                          (:title issue))))
