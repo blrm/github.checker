@@ -19,7 +19,7 @@
                          (:url issue)
                          (:title issue))))
     {:type :gh-blocker
-     ::source '(~'open-gh-issues ~account ~repo & ~@ids)}))
+     ::source '(~'open-gh-issues ~account ~repo ~@ids)}))
 
 (defmethod print-method :gh-blocker [o ^java.io.Writer w]
   (print-method (::source (meta o)) w))
