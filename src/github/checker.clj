@@ -1,25 +1,28 @@
 (ns github.checker
-  (:require [tentacles.issues :as issues]))
+  (:require [tentacles.issues :as issues]
+            [slingshot.slingshot :refer [throw+]]))
+
+(defrecord Issue [account repo number])
 
 (defn closed? [issue]
   (= "closed" (:state issue)))
 
-(defn gh-exists? [issue]
+(defn exists? [issue]
   (not= 404 (:status issue)))
 
-(defn get-issues [account repo issue-ids]
-  (for [id issue-ids]
-    (issues/specific-issue account repo id)))
+(defn get-issue
+  ([account repo number]
+     (get-issue (Issue. account repo number)))
+  ([issue]
+     (let [server-issue (issues/specific-issue (:account issue) (:repo issue) (:number issue))]
+       (if (exists? server-issue)
+         (merge issue server-issue)
+         (throw+ {:type ::not-found,
+                  :issue issue
+                  :response server-issue})))))
 
-(defn open-gh-issues
-  [account repo & ids]
-  (with-meta (fn [_]
-               (for [issue (->> ids (get-issues account repo) (filter (and gh-exists? (complement closed?))))]
-                 (format "<a href='%1s'>%2s</a>"
-                         (:url issue)
-                         (:title issue))))
-    {:type :gh-blocker
-     ::source '(~'open-gh-issues ~account ~repo ~@ids)}))
+(defn link [issue]
+  (format "<a href='%1s'>%2s</a>"
+          (:url issue)
+          (:title issue)))
 
-(defmethod print-method :gh-blocker [o ^java.io.Writer w]
-  (print-method (::source (meta o)) w))
